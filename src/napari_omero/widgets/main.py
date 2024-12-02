@@ -1,4 +1,3 @@
-from omero.gateway import BlitzObjectWrapper
 from qtpy.QtCore import (
     QCoreApplication,
     QItemSelection,
@@ -14,6 +13,8 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from omero.gateway import BlitzObjectWrapper
 
 from .gateway import QGateWay
 from .login import LoginForm
