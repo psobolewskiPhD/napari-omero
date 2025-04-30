@@ -1,9 +1,7 @@
-import json
 import warnings
 from typing import ClassVar, Optional
 
 import numpy as np
-import pyperclip
 from napari.layers import Labels
 from napari.utils import progress
 from napari.viewer import Viewer
@@ -34,7 +32,7 @@ class ROIWidget(QWidget):
 
         self.viewer = viewer
         self.gateway = QGateWay(self)
-        self.copied_metadata: Optional[dict] = None
+        self._copied_metadata: Optional[dict] = None
 
         self.setup_widget()
 
@@ -117,34 +115,34 @@ class ROIWidget(QWidget):
         self.status_label.setText(f"Metadata pasted to {target_layer.name}")
 
     def _on_copy_metadata(self, viewer: Viewer = None):
-        """Create a new shapes layer in the viewer and link to the selected layer."""
+        """Store metadata from the selected layer in an instance variable."""
         # check if 'omero' field is in metadata
         if "omero" not in self.selected_layer.metadata:
             warnings.warn("No OMERO metadata found in selected layer.", stacklevel=2)
             return
 
-        # copy to clipboard
-        metadata_json = json.dumps(self.selected_layer.metadata["omero"])
-        pyperclip.copy(metadata_json)
+        # store metadata in instance variable
+        self._copied_metadata = self.selected_layer.metadata["omero"]
 
         self.status_label.setText(f"Metadata copied from {self.selected_layer.name}")
 
     def _on_paste_metadata(self, viewer: Viewer = None):
-        """Create a new labels layer in the viewer and link to the selected layer."""
+        """Paste metadata from the instance variable to the target layer."""
         target_layer = viewer.layers[self.target_link_dropdown.currentText()]
 
-        # paste from clipboard
-        metadata_json = pyperclip.paste()
-        try:
-            metadata = json.loads(metadata_json)
-        except json.JSONDecodeError:
-            print("Failed to decode JSON from clipboard.")
+        # check if metadata is available
+        if not self._copied_metadata:
+            warnings.warn("No metadata available to paste.", stacklevel=2)
             return
 
         # clip metadata to relevant fields:
         # ID is (currently) the only field that is relevant for linking
         relevant_fields = ["@id"]
-        metadata = {key: metadata[key] for key in relevant_fields if key in metadata}
+        metadata = {
+            key: self._copied_metadata[key]
+            for key in relevant_fields
+            if key in self._copied_metadata
+        }
 
         # update metadata
         target_layer.metadata["omero"] = metadata
